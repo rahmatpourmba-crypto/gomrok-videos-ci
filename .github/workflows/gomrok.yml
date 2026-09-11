@@ -1,0 +1,59 @@
+name: gomrok-send
+
+on:
+  workflow_dispatch:
+    inputs:
+      nums:
+        description: 'Question numbers to render & send (space separated, e.g. 256 262)'
+        required: true
+        default: '256 262'
+      repo_path:
+        description: 'Remotion project dir relative to repo root (default movie)'
+        required: false
+        default: 'movie'
+
+jobs:
+  render-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: movie/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install edge-tts
+        run: pip install edge-tts
+
+      - name: Install Remotion deps
+        working-directory: movie
+        run: npm ci
+
+      - name: Ensure Headless Chrome
+        working-directory: movie
+        run: npx remotion browser ensure
+
+      - name: Run pipeline
+        working-directory: movie
+        env:
+          REMOTION_DIR: ${{ github.workspace }}/${{ inputs.repo_path }}
+          GOMROK_TOKEN: ${{ secrets.GOMROK_TOKEN }}
+        run: |
+          python ../scripts/go_resilient.py ${{ inputs.nums }}
+
+      - name: Upload sent videos
+        uses: actions/upload-artifact@v4
+        with:
+          name: gomrok-videos
+          path: movie/out/*.mp4
+          if-no-files-found: warn

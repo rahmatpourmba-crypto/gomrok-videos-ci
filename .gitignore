@@ -1,0 +1,14 @@
+# Node
+node_modules/
+movie/out/
+movie/work/
+movie/public/customs/*.mp3
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs / misc
+*.log
+rendered.txt
+go_resilient.log
